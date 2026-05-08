@@ -1,162 +1,227 @@
-# 🔍 Hallucination Hunter
+# Hallucination Hunter
 
-**Automated hallucination detection and scoring for LLM outputs — built on the RAG Triad framework.**
-
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.55-red.svg)](https://streamlit.io)
-[![Framework](https://img.shields.io/badge/Framework-RAG%20Triad-green.svg)](https://docs.ragas.io)
-[![Status](https://img.shields.io/badge/Status-Active%20Development-orange.svg)]()
-
----
-
-## What It Does
-
-Hallucination Hunter is a production-grade **EvalOps tool** that automatically detects and scores factual errors in LLM-generated responses.
-
-It takes three inputs:
-1. A **source document** (ground truth)
-2. A **question** asked of the LLM
-3. The **LLM's response**
-
-And returns a structured **Hallucination Audit Report** — scoring faithfulness, identifying specific false claims, and flagging ungrounded assertions.
-
----
-
-## Why This Matters
-
-> "AI hallucinations cost enterprises an estimated $100B+ annually in trust failures, legal exposure, and rework." — *McKinsey AI Report, 2025*
-
-Most teams building RAG pipelines can measure retrieval speed. Very few can measure **whether the model is lying about what it retrieved**. That gap is what this tool closes.
-
-**Three problems it solves:**
-
-| Problem | What Hallucination Hunter Does |
-|---|---|
-| Manual review doesn't scale | Evaluates 1,000+ responses/minute vs. human rate of ~30/hour |
-| Failures are invisible | Returns atomic claim-level breakdown, not just a pass/fail |
-| Multilingual blind spots | Detects cross-lingual grounding errors (English ↔ Bengali) missed by English-only evaluators |
-
----
-
-## How It Works — The RAG Triad Pipeline
+**Automated faithfulness evaluation for LLM outputs — built on the RAG Triad.**
 
 ```
-SOURCE DOCUMENT + LLM RESPONSE
-         │
-         ▼
-  ┌─────────────────────┐
-  │  CLAIM EXTRACTOR    │  ← Breaks response into atomic facts
-  └─────────────────────┘
-         │
-         ▼
-  ┌─────────────────────┐
-  │  NLI VERIFIER       │  ← Checks each claim vs. source
-  │  (Entailment / NLI) │    ENTAIL | CONTRADICT | NEUTRAL
-  └─────────────────────┘
-         │
-         ▼
-  ┌─────────────────────┐
-  │  METRICS ENGINE     │  ← Calculates RAG Triad scores
-  │  · Faithfulness     │    (0.0 = pure hallucination)
-  │  · Answer Relevancy │    (1.0 = fully grounded)
-  │  · Context Precision│
-  └─────────────────────┘
-         │
-         ▼
-  ┌─────────────────────┐
-  │  AUDIT REPORT       │  ← JSON + Streamlit dashboard
-  └─────────────────────┘
+source document + LLM answer  →  Faithfulness Score  →  Claim-level audit report
+```
+
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://python.org)
+[![License MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-pytest-brightgreen)](tests/)
+[![Status](https://img.shields.io/badge/status-active%20development-orange)]()
+
+---
+
+## Overview
+
+Hallucination Hunter is a local-first EvalOps tool that detects when an LLM response
+contradicts, invents, or drifts away from its source document.
+
+It implements a **three-stage judge pipeline**:
+
+```
+┌────────────────────┐     ┌────────────────────┐     ┌────────────────────┐
+│  Claim Extractor   │────▶│   NLI Verifier     │────▶│  Metrics Engine    │
+│                    │     │                    │     │                    │
+│  Breaks answer     │     │  Checks each claim │     │  Faithfulness      │
+│  into atomic facts │     │  vs. source doc    │     │  = supported /     │
+│                    │     │                    │     │    total claims     │
+│  → list of claims  │     │  ENTAIL → 1.0      │     │                    │
+│                    │     │  NEUTRAL → 0.5     │     │  AuditReport       │
+│                    │     │  CONTRADICT → 0.0  │     │  (JSON or UI)      │
+└────────────────────┘     └────────────────────┘     └────────────────────┘
+```
+
+### Faithfulness Thresholds
+
+| Score | Status | Meaning |
+|-------|--------|---------|
+| ≥ 0.85 | ✅ PASS | All or nearly all claims are grounded in the source |
+| 0.50 – 0.84 | ⚠️ WARNING | Some claims are ungrounded or contradicted |
+| < 0.50 | ❌ FAIL | Majority of claims are hallucinated |
+
+---
+
+## Project Structure
+
+```
+hallucination-hunter/
+├── src/hallucination_hunter/
+│   ├── __init__.py              Public API
+│   ├── models.py                Domain types (Pydantic v2)
+│   ├── pipeline.py              Main orchestrator
+│   ├── cli.py                   Command-line interface
+│   ├── core/
+│   │   ├── extractor.py         Claim extraction engine
+│   │   ├── verifier.py          NLI verification engine
+│   │   └── scorer.py            RAG Triad metrics
+│   └── providers/
+│       ├── base.py              Abstract provider contract
+│       ├── gemini.py            Google Gemini adapter
+│       └── __init__.py          Provider registry + factory
+├── tests/
+│   ├── conftest.py              Shared fixtures + MockProvider
+│   ├── test_models.py
+│   ├── test_scorer.py
+│   ├── test_extractor.py
+│   ├── test_verifier.py
+│   └── test_providers.py
+├── examples/
+│   └── golden_dataset.json      10 labelled test cases
+├── .env.example                 Environment template
+├── pyproject.toml               Project metadata + tool config
+├── requirements.txt             Pinned runtime dependencies
+└── requirements-dev.txt         Dev and test dependencies
 ```
 
 ---
 
-## Tech Stack
+## Quickstart
 
-| Layer | Tool |
-|---|---|
-| Language | Python 3.11 |
-| UI | Streamlit |
-| Evaluation Framework | DeepEval + RAGAS |
-| NLI / Judge Model | Claude Sonnet / GPT-4o |
-| Data Handling | Pandas |
-| Version Control | GitHub |
+### Prerequisites
 
----
+- Python 3.11 or higher
+- A free Gemini API key — get one at [aistudio.google.com](https://aistudio.google.com/app/apikey)
+  (no credit card required · 1 000 free requests/day on `gemini-2.5-flash-lite`)
 
-## Quick Start
+### Install
 
 ```bash
-# 1. Clone the repo
 git clone https://github.com/habibm94/hallucination-hunter.git
 cd hallucination-hunter
 
-# 2. Create virtual environment
 python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
+source venv/bin/activate      # Windows: venv\Scripts\activate
 
-# 3. Install dependencies
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+pip install -e .
+```
 
-# 4. Add your API key
+### Configure
+
+```bash
 cp .env.example .env
-# Edit .env with your OPENAI_API_KEY or ANTHROPIC_API_KEY
+# Edit .env — set GEMINI_API_KEY=AIzaSy...
+```
 
-# 5. Run the app
-streamlit run app.py
+### Run tests (no API key needed)
+
+```bash
+pytest
+```
+
+All tests use mock providers and pass fully offline.
+
+### Run your first audit
+
+**Single audit:**
+```bash
+hallucination-hunter \
+  --source "The Eiffel Tower is in Paris. It was built in 1889." \
+  --question "Where and when was the Eiffel Tower built?" \
+  --answer "The Eiffel Tower was built in 1892 in London."
+```
+
+**Batch audit from file:**
+```bash
+hallucination-hunter --input examples/golden_dataset.json --output report.json
+```
+
+**Sample output:**
+```
+Hallucination Hunter  v0.1.0
+Provider: gemini  Model: gemini-2.5-flash-lite
+
+  → Extracting claims …
+  → Verifying 2 claim(s) …
+  → Calculating metrics …
+
+────────────────────────────────────────────────────────────
+  Status        FAIL
+  Faithfulness  0.000
+  Claims        0 supported  2 contradicted  0 ungrounded
+────────────────────────────────────────────────────────────
+  [✗] CONTRADICT  The Eiffel Tower was built in 1892.
+       Evidence: 'constructed in 1889'
+  [✗] CONTRADICT  The Eiffel Tower is in London.
+       Evidence: 'located in Paris, France'
+────────────────────────────────────────────────────────────
 ```
 
 ---
 
-## Example Output
+## Python API
 
-**Input:**
-```json
-{
-  "source": "The Eiffel Tower is located in Paris, France. It was constructed in 1889.",
-  "question": "When and where was the Eiffel Tower built?",
-  "answer": "The Eiffel Tower was built in 1892 in London, England."
-}
+```python
+from hallucination_hunter import HallucinationHunter
+
+hunter = HallucinationHunter()      # reads GEMINI_API_KEY from .env
+
+report = hunter.audit(
+    source="The Eiffel Tower is in Paris. It was built in 1889.",
+    question="Where is the Eiffel Tower?",
+    answer="The Eiffel Tower is in Berlin.",
+)
+
+print(report.faithfulness_score)    # 0.0
+print(report.status.value)          # FAIL
+print(report.to_dict())             # full JSON-serialisable report
 ```
 
-**Audit Report:**
-```json
-{
-  "faithfulness_score": 0.0,
-  "status": "FAIL — HALLUCINATION DETECTED",
-  "claims": [
-    {
-      "claim": "Built in 1892",
-      "verdict": "CONTRADICTION",
-      "source_says": "Constructed in 1889",
-      "score": 0.0
-    },
-    {
-      "claim": "Located in London, England",
-      "verdict": "CONTRADICTION",
-      "source_says": "Located in Paris, France",
-      "score": 0.0
-    }
-  ]
-}
+**Batch from file:**
+```python
+reports = hunter.audit_from_file("examples/golden_dataset.json")
+for r in reports:
+    print(r.status.value, r.faithfulness_score)
 ```
 
 ---
 
-## Project Status
+## Build Steps
 
-See [ROADMAP.md](ROADMAP.md) for full build plan.
-
-- ✅ **Phase 0** — Repository setup, golden dataset, architecture design
-- 🔄 **Phase 1** — Core logic: claim extractor + NLI verifier + metrics engine *(in progress)*
-- ⏳ **Phase 2** — Streamlit dashboard + side-by-side model comparison
-- ⏳ **Phase 3** — Bengali multilingual module + Streamlit Cloud deployment
+| Step | Description | Status |
+|------|-------------|--------|
+| 1 | Project structure, models, provider abstraction | ✅ Done |
+| 2 | Gemini provider adapter | ✅ Done |
+| 3 | Claim extraction engine | ✅ Done |
+| 4 | NLI verification engine | ✅ Done |
+| 5 | Metrics engine + CLI | ✅ Done |
+| 6 | Answer relevancy metric | ⏳ Next |
+| 7 | Context precision metric | ⏳ Planned |
+| 8 | Streamlit dashboard + BYOK UI | ⏳ Planned |
+| 9 | Multi-provider support (OpenAI, Anthropic, Grok) | ⏳ Planned |
+| 10 | Bengali multilingual failure mode detection | ⏳ Planned |
+| 11–20 | Batch UI, export, comparison view, performance | ⏳ Planned |
 
 ---
 
-## About the Builder
+## Supported Providers
 
-Built by **Habibullah Bin Mahmud** — Senior AI Evaluator with 2,200+ hours across frontier LLM evaluation pipelines (Outlier.ai, Veritylab.ai). Native Bengali speaker specializing in cross-lingual hallucination detection and multilingual alignment auditing.
+| Provider | Development | Dashboard (Step 9) |
+|----------|-------------|-------------------|
+| Gemini (Google) | ✅ Default | ✅ Planned |
+| OpenAI | — | ✅ Planned |
+| Anthropic Claude | — | ✅ Planned |
+| Grok (xAI) | — | ✅ Planned |
 
-This project translates 2,200 hours of manual evaluation intuition into automated, scalable EvalOps infrastructure.
+---
 
-🔗 [LinkedIn](https://linkedin.com/in/habibm94) · [GitHub](https://github.com/habibm94)
+## Development
+
+```bash
+# Tests with coverage report
+pytest --cov=src/hallucination_hunter
+
+# Lint
+ruff check src/ tests/
+
+# Editable install
+pip install -e .[dev]
+```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
