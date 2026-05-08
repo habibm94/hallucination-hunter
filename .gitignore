@@ -1,0 +1,48 @@
+# Environment — API keys must never be committed
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+site/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Linting
+.ruff_cache/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data — do not commit large or sensitive datasets
+data/raw/
+*.csv
+# Keep the golden test dataset committed
+!examples/golden_dataset.json
