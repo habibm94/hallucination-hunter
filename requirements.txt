@@ -1,15 +1,15 @@
-# Core dependencies — pinned for reproducibility.
-# Generated from pyproject.toml. Run `pip install -e .[dev]` for development.
+# Core runtime dependencies.
 
-pydantic==2.9.2
-python-dotenv==1.0.1
-google-generativeai==0.8.3
+# Validation and configuration
+pydantic>=2.5.0
+python-dotenv>=1.0.0
 
-# UI layer (Step 8+)
-streamlit==1.41.1
-pandas==2.2.3
-altair==5.4.1
+# LLM provider SDKs — unpinned to stay compatible with latest httpx
+google-generativeai>=0.8.0
+openai>=2.0.0
+anthropic>=0.39.0
 
-# Optional providers (Step 9+) — uncomment to enable
-# openai==1.54.3
-# anthropic==0.39.0
+# UI (Step 14+)
+streamlit>=1.40.0
+pandas>=2.0.0
+altair>=5.0.0
