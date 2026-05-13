@@ -46,3 +46,6 @@ data/raw/
 *.csv
 # Keep the golden test dataset committed
 !examples/golden_dataset.json
+
+# Internal planning - not for public repo
+v3_ideas.md
