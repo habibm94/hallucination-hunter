@@ -1,0 +1,59 @@
+@'
+# v3+ Ideas — Parking Lot
+
+This file holds requirements that are NOT part of v1 or v2.
+Do not work on anything in this file until v1 has shipped and v2 is complete.
+
+## Scope discipline rule
+
+If you find yourself wanting to add something here mid-build, ask:
+- Will a hiring manager notice this in a 90-second demo?
+- Does this prove evaluation expertise, or generic developer skill?
+
+If the answers are "no" and "generic developer skill", it stays here.
+
+---
+
+## Deferred from initial v1 planning
+
+### From v1.5 (originally planned for after v1)
+- Batch processing UI (process multiple audits sequentially with progress)
+- PDF source input (parse via pypdf)
+- DOCX source input (parse via python-docx)
+- Excel source input (parse via openpyxl)
+- Plain text file source input
+- Report export to PDF
+- Report export to DOCX
+- Report export to Excel
+- Detailed vs basic report modes (current adaptive report is sufficient)
+
+### From v2.5
+- Multi-LLM ensemble audits
+- Disagreement detection across providers
+- Confidence weighting based on inter-provider agreement
+
+### From v3
+- Safety audit module
+- Bias audit module
+- Refusal calibration testing
+- Adversarial prompt resistance testing
+
+### From v3.5
+- Cloud deployment beyond Streamlit Community Cloud
+- AWS / GCP / Azure integration
+- Multi-tenant API
+- Team workspaces
+
+### From the original 14-item requirement list (deprioritized)
+- Async/await throughout pipeline
+- Auto-updating package management
+- OS compatibility testing matrix
+- Custom security hardening
+- Code size optimization
+
+## Re-evaluation date
+
+Open this file no earlier than 30 days after v1 ships AND a LinkedIn
+post about it has gone live. Anything still relevant after that earns
+its place in v3.
+'@ | Set-Content -Path .\v3_ideas.md -Encoding UTF8
