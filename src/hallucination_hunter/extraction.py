@@ -51,6 +51,14 @@ class ClaimExtractor:
         except ResponseParseError:
             return []
 
+        # Handle both raw arrays and wrapped objects like {"claims": [...]}
+        if isinstance(parsed, dict):
+            for v in parsed.values():
+                if isinstance(v, list):
+                    parsed = v
+                    break
+            else:
+                return []
         if not isinstance(parsed, list):
             return []
 
