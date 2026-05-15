@@ -49,3 +49,6 @@ data/raw/
 
 # Internal planning - not for public repo
 v3_ideas.md
+
+_dump_*.txt
+audit_current.txt

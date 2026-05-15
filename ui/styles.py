@@ -8,7 +8,7 @@ Design tokens (per project spec):
     Typography:    Inter
     Border radius: 8px       Transitions:   0.2s ease
 
-Exposes a single function — `load_custom_css()` — that injects the stylesheet
+Exposes a single function â€” `load_custom_css()` â€” that injects the stylesheet
 via `st.markdown(..., unsafe_allow_html=True)`. Call once per page render,
 after `st.set_page_config()`.
 """
@@ -920,6 +920,120 @@ _CSS = """
 .hh-counter-soft  { color: var(--hh-warn); }
 .hh-counter-warn  { color: var(--hh-fail); font-weight: 600; }
 
+
+/* ---------- A/B mode ---------- */
+.hh-ab-label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--hh-radius);
+    margin-bottom: 0.5rem;
+    display: inline-block;
+}
+.hh-ab-label-a {
+    background: rgba(0, 217, 255, 0.12);
+    color: var(--hh-accent);
+    border: 1px solid rgba(0, 217, 255, 0.35);
+}
+.hh-ab-label-b {
+    background: rgba(255, 214, 0, 0.12);
+    color: var(--hh-warn);
+    border: 1px solid rgba(255, 214, 0, 0.35);
+}
+.hh-ab-verdict {
+    text-align: center;
+    padding: 0.75rem 1rem;
+    border-radius: var(--hh-radius-lg);
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 1.25rem;
+}
+.hh-ab-winner-a {
+    background: rgba(0, 217, 255, 0.10);
+    color: var(--hh-accent);
+    border: 1px solid rgba(0, 217, 255, 0.35);
+}
+.hh-ab-winner-b {
+    background: rgba(255, 214, 0, 0.10);
+    color: var(--hh-warn);
+    border: 1px solid rgba(255, 214, 0, 0.35);
+}
+.hh-ab-winner-tie {
+    background: rgba(154, 160, 172, 0.10);
+    color: var(--hh-text-mute);
+    border: 1px solid var(--hh-border);
+}
+.hh-ab-report-label {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--hh-text);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--hh-border);
+}
+
+/* ---------- Taxonomy summary ---------- */
+.hh-tax-grid {
+    background: var(--hh-card);
+    border: 1px solid var(--hh-border);
+    border-radius: var(--hh-radius-lg);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+.hh-tax-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--hh-border-soft);
+    flex-wrap: wrap;
+}
+.hh-tax-row:last-child {
+    border-bottom: none;
+}
+.hh-tax-chip {
+    font-family: var(--hh-font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+    min-width: 85px;
+    text-align: center;
+}
+.hh-tax-count {
+    font-family: var(--hh-font-mono);
+    font-weight: 700;
+    font-size: 1rem;
+    min-width: 24px;
+}
+.hh-tax-count-active { color: var(--hh-text); }
+.hh-tax-count-dim { color: var(--hh-text-dim); }
+.hh-tax-row-dim { opacity: 0.4; }
+.hh-tax-row-active { opacity: 1; }
+.hh-tax-details {
+    flex-basis: 100%;
+    padding-left: 100px;
+}
+.hh-tax-explanation {
+    font-size: 0.85rem;
+    color: var(--hh-fail);
+    padding: 0.2rem 0 0.2rem 0.75rem;
+    border-left: 2px solid var(--hh-fail);
+    margin-bottom: 0.25rem;
+}
+
+/* ---------- Taxonomy chips on claim cards ---------- */
+.hh-tag-chip {
+    font-family: var(--hh-font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    cursor: default;
+}
 </style>
 """
 

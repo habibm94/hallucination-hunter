@@ -1,6 +1,6 @@
-"""Unit tests for OpenAI, Anthropic, and Grok provider adapters.
+﻿"""Unit tests for OpenAI, Anthropic, and Grok provider adapters.
 
-All tests are fully offline — they patch SDK client construction so no
+All tests are fully offline â€” they patch SDK client construction so no
 real API keys, network calls, or httpx connections are required.
 """
 
@@ -28,14 +28,14 @@ from hallucination_hunter.providers.grok import DEFAULT_GROK_MODEL, GrokProvider
 from hallucination_hunter.providers.openai import DEFAULT_OPENAI_MODEL, OpenAIProvider
 
 
-# ─── Registry tests ────────────────────────────────────────────────────────────
+# â”€â”€â”€ Registry tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestUpdatedRegistry:
     """The provider registry now includes all four providers."""
 
-    def test_all_four_providers_registered(self) -> None:
-        assert set(SUPPORTED_PROVIDERS) == {"gemini", "openai", "anthropic", "grok"}
+    def test_all_five_providers_registered(self) -> None:
+        assert set(SUPPORTED_PROVIDERS) == {"gemini", "openai", "anthropic", "grok", "groq"}
 
     def test_all_providers_have_model_menus(self) -> None:
         for name in SUPPORTED_PROVIDERS:
@@ -52,11 +52,11 @@ class TestUpdatedRegistry:
             assert PROVIDER_STATUS[name] == "available"
 
 
-# ─── OpenAI adapter tests ──────────────────────────────────────────────────────
+# â”€â”€â”€ OpenAI adapter tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestOpenAIProvider:
-    """Behaviour of OpenAIProvider — client construction is patched."""
+    """Behaviour of OpenAIProvider â€” client construction is patched."""
 
     def test_empty_key_raises_authentication_error(self) -> None:
         with pytest.raises(AuthenticationError):
@@ -125,11 +125,11 @@ class TestOpenAIProvider:
             provider.call("prompt")
 
 
-# ─── Anthropic adapter tests ───────────────────────────────────────────────────
+# â”€â”€â”€ Anthropic adapter tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAnthropicProvider:
-    """Behaviour of AnthropicProvider — client construction is patched."""
+    """Behaviour of AnthropicProvider â€” client construction is patched."""
 
     def test_empty_key_raises_authentication_error(self) -> None:
         with pytest.raises(AuthenticationError):
@@ -214,11 +214,11 @@ class TestAnthropicProvider:
             provider.call("prompt")
 
 
-# ─── Grok adapter tests ────────────────────────────────────────────────────────
+# â”€â”€â”€ Grok adapter tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestGrokProvider:
-    """Behaviour of GrokProvider — client construction is patched."""
+    """Behaviour of GrokProvider â€” client construction is patched."""
 
     def test_empty_key_raises_authentication_error(self) -> None:
         with pytest.raises(AuthenticationError):
@@ -271,3 +271,5 @@ class TestGrokProvider:
 
         with pytest.raises(ProviderError):
             provider.call("prompt")
+
+

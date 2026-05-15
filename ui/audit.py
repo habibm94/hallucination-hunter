@@ -1,4 +1,4 @@
-﻿"""Audit page UI for Hallucination Hunter."""
+"""Audit page UI for Hallucination Hunter."""
 
 from __future__ import annotations
 
@@ -13,7 +13,11 @@ from hallucination_hunter.errors import (
     HallucinationHunterError,
     make_error,
 )
-from hallucination_hunter.models import AuditStatus
+from hallucination_hunter.models import (
+    AuditStatus,
+    DETAIL_TYPES,
+    HallucinationType,
+)
 from hallucination_hunter.pipeline import HallucinationHunter
 from hallucination_hunter.providers import (
     PROVIDER_MODELS,
@@ -33,6 +37,16 @@ _STATUS_STYLES: dict[str, dict[str, str]] = {
     "PASS": {"cls": "hh-status-pass", "label": "PASS"},
     "WARNING": {"cls": "hh-status-warn", "label": "WARNING"},
     "FAIL": {"cls": "hh-status-fail", "label": "FAIL"},
+}
+
+_TAXONOMY_COLORS: dict[str, str] = {
+    "INTRINSIC": "#FF3D00",
+    "EXTRINSIC": "#FF6D00",
+    "LOGICAL": "#FF9100",
+    "ENTITY": "#FFD600",
+    "TEMPORAL": "#00BCD4",
+    "NUMERIC": "#7C4DFF",
+    "CITATION": "#00C853",
 }
 
 
@@ -75,7 +89,6 @@ def _html_escape(text: str) -> str:
 
 
 def _render_char_counter(text: str, limit: int) -> None:
-    """Render a small character counter under a text field."""
     used = len(text or "")
     pct = (used / limit) if limit else 0
     if pct >= 0.95:
@@ -91,13 +104,16 @@ def _render_char_counter(text: str, limit: int) -> None:
     )
 
 
+# ------------------------------------------------------------------ #
+# SECTION A — Provider Setup                                          #
+# ------------------------------------------------------------------ #
+
 def _render_provider_setup() -> tuple[str | None, str | None, str | None]:
-    """Render provider/model/key controls. Reactive readiness indicator."""
     st.markdown(
         "<div class='hh-section-head'>"
         "<span class='hh-section-num'>A</span>"
         "<span class='hh-section-title'>Provider Setup</span>"
-        "<span class='hh-section-tag'>BYOK · session-only</span>"
+        "<span class='hh-section-tag'>BYOK \xb7 session-only</span>"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -128,18 +144,17 @@ def _render_provider_setup() -> tuple[str | None, str | None, str | None]:
         return provider, None, None
 
     available_models_dict = PROVIDER_MODELS.get(provider, {})
-    available_model_ids = (
-        list(available_models_dict.values()) if available_models_dict else []
-    )
+    model_ids = list(available_models_dict.keys())
 
     with col_model:
-        if not available_model_ids:
+        if not model_ids:
             st.warning(f"No models registered for {provider}.")
             model = None
         else:
             model = st.selectbox(
                 "Model",
-                options=available_model_ids,
+                options=model_ids,
+                format_func=lambda m: available_models_dict.get(m, m),
                 key=f"hh_model_select_{provider}",
                 help="Model used for claim extraction and NLI verification.",
             )
@@ -166,7 +181,7 @@ def _render_provider_setup() -> tuple[str | None, str | None, str | None]:
         st.markdown(
             "<div class='hh-ready hh-ready-ok'>"
             "<span class='hh-ready-dot'></span>"
-            f"<span>Ready · {provider} / {model}</span>"
+            f"<span>Ready \xb7 {provider} / {model}</span>"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -188,18 +203,29 @@ def _render_provider_setup() -> tuple[str | None, str | None, str | None]:
     return provider, model, api_key if api_key else None
 
 
+# ------------------------------------------------------------------ #
+# SECTION B — Audit Inputs                                            #
+# ------------------------------------------------------------------ #
+
 def _render_input_fields() -> tuple[str, str, str]:
-    """Render source/question/answer inputs with visible char counters."""
     st.markdown(
         "<div class='hh-section-head'>"
         "<span class='hh-section-num'>B</span>"
         "<span class='hh-section-title'>Audit Inputs</span>"
-        "<span class='hh-section-tag'>source · question · answer</span>"
+        "<span class='hh-section-tag'>source \xb7 question \xb7 answer</span>"
         "</div>",
         unsafe_allow_html=True,
     )
 
-    source_label = f"Source Context  ·  max {MAX_SOURCE_CHARS:,} chars"
+    mode = st.radio(
+        "Mode",
+        ["Single", "A/B Comparison"],
+        horizontal=True,
+        key="hh_mode",
+        help="Single audits one answer. A/B compares two answers side by side.",
+    )
+
+    source_label = f"Source Context (max {MAX_SOURCE_CHARS:,} chars)"
     source = st.text_area(
         source_label,
         placeholder=(
@@ -216,7 +242,7 @@ def _render_input_fields() -> tuple[str, str, str]:
     )
     _render_char_counter(source, MAX_SOURCE_CHARS)
 
-    question_label = f"User Question  ·  max {MAX_QUESTION_CHARS:,} chars"
+    question_label = f"User Question (max {MAX_QUESTION_CHARS:,} chars)"
     question = st.text_area(
         question_label,
         placeholder="What was asked of the LLM?",
@@ -227,22 +253,55 @@ def _render_input_fields() -> tuple[str, str, str]:
     )
     _render_char_counter(question, MAX_QUESTION_CHARS)
 
-    answer_label = f"LLM Answer  ·  max {MAX_ANSWER_CHARS:,} chars"
-    answer = st.text_area(
-        answer_label,
-        placeholder="Paste the model's response here...",
-        height=180,
-        max_chars=MAX_ANSWER_CHARS,
-        key="hh_input_answer",
-        help=(
-            "The LLM-generated response to audit. "
-            f"Limit: {MAX_ANSWER_CHARS:,} characters."
-        ),
-    )
-    _render_char_counter(answer, MAX_ANSWER_CHARS)
+    if mode == "Single":
+        answer_label = f"LLM Answer (max {MAX_ANSWER_CHARS:,} chars)"
+        answer = st.text_area(
+            answer_label,
+            placeholder="Paste the model's response here...",
+            height=180,
+            max_chars=MAX_ANSWER_CHARS,
+            key="hh_input_answer",
+            help=f"The LLM response to audit. Limit: {MAX_ANSWER_CHARS:,} characters.",
+        )
+        _render_char_counter(answer, MAX_ANSWER_CHARS)
+        return source, question, answer
 
-    return source, question, answer
+    # A/B mode
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown(
+            "<div class='hh-ab-label hh-ab-label-a'>Answer A</div>",
+            unsafe_allow_html=True,
+        )
+        answer_a = st.text_area(
+            f"Answer A (max {MAX_ANSWER_CHARS:,} chars)",
+            placeholder="Paste first model response...",
+            height=180,
+            max_chars=MAX_ANSWER_CHARS,
+            key="hh_input_answer_a",
+        )
+        _render_char_counter(answer_a, MAX_ANSWER_CHARS)
+    with col_b:
+        st.markdown(
+            "<div class='hh-ab-label hh-ab-label-b'>Answer B</div>",
+            unsafe_allow_html=True,
+        )
+        answer_b = st.text_area(
+            f"Answer B (max {MAX_ANSWER_CHARS:,} chars)",
+            placeholder="Paste second model response...",
+            height=180,
+            max_chars=MAX_ANSWER_CHARS,
+            key="hh_input_answer_b",
+        )
+        _render_char_counter(answer_b, MAX_ANSWER_CHARS)
 
+    st.session_state["hh_answer_b"] = answer_b
+    return source, question, answer_a
+
+
+# ------------------------------------------------------------------ #
+# SECTION C — Run Audit                                               #
+# ------------------------------------------------------------------ #
 
 def _render_execution(
     provider: str | None,
@@ -252,7 +311,6 @@ def _render_execution(
     question: str,
     answer: str,
 ) -> None:
-    """Run Audit / Clear buttons and orchestration."""
     st.markdown(
         "<div class='hh-section-head'>"
         "<span class='hh-section-num'>C</span>"
@@ -278,8 +336,8 @@ def _render_execution(
         )
 
     if clear_clicked:
-        st.session_state.pop("last_report", None)
-        st.session_state.pop("last_error", None)
+        for k in ("last_report", "last_report_pair", "last_error"):
+            st.session_state.pop(k, None)
         st.rerun()
 
     if not run_clicked:
@@ -295,18 +353,23 @@ def _render_execution(
         st.warning("API key is required. Enter it in Section A.")
         return
 
+    is_ab = st.session_state.get("hh_mode") == "A/B Comparison"
+
     progress_slot = st.empty()
     progress_bar = progress_slot.progress(0, text="Starting audit...")
 
     stage_progress = {
-        "extracting claims": 0.20,
-        "verifying": 0.55,
-        "calculating metrics": 0.90,
+        "extracting claims": 0.15,
+        "verifying": 0.40,
+        "calculating metrics": 0.70,
+        "[a]": 0.10,
+        "[b]": 0.55,
     }
 
     def _on_progress(msg: str) -> None:
+        lower = msg.lower()
         for keyword, pct in stage_progress.items():
-            if msg.lower().startswith(keyword):
+            if lower.startswith(keyword):
                 progress_bar.progress(pct, text=msg)
                 return
         progress_bar.progress(0.10, text=msg)
@@ -318,21 +381,39 @@ def _render_execution(
             model=model,
             _provider_instance=provider_instance,
         )
-        report = hunter.audit(
-            source=source,
-            question=question,
-            answer=answer,
-            progress_callback=_on_progress,
-        )
-        progress_bar.progress(1.0, text="Done.")
-        progress_slot.empty()
-        st.session_state["last_report"] = report
-        st.session_state.pop("last_error", None)
+
+        if is_ab:
+            answer_b = st.session_state.get("hh_answer_b", "")
+            report_a, report_b = hunter.audit_pair(
+                source=source,
+                question=question,
+                answer_a=answer,
+                answer_b=answer_b,
+                progress_callback=_on_progress,
+            )
+            progress_bar.progress(1.0, text="Done.")
+            progress_slot.empty()
+            st.session_state["last_report_pair"] = (report_a, report_b)
+            st.session_state.pop("last_report", None)
+            st.session_state.pop("last_error", None)
+        else:
+            report = hunter.audit(
+                source=source,
+                question=question,
+                answer=answer,
+                progress_callback=_on_progress,
+            )
+            progress_bar.progress(1.0, text="Done.")
+            progress_slot.empty()
+            st.session_state["last_report"] = report
+            st.session_state.pop("last_report_pair", None)
+            st.session_state.pop("last_error", None)
 
     except HallucinationHunterError as e:
         progress_slot.empty()
         st.session_state["last_error"] = e.detail
         st.session_state.pop("last_report", None)
+        st.session_state.pop("last_report_pair", None)
 
     except Exception as e:
         progress_slot.empty()
@@ -341,7 +422,12 @@ def _render_execution(
             context={"exc_type": type(e).__name__, "underlying": str(e)},
         )
         st.session_state.pop("last_report", None)
+        st.session_state.pop("last_report_pair", None)
 
+
+# ------------------------------------------------------------------ #
+# RENDERING HELPERS                                                   #
+# ------------------------------------------------------------------ #
 
 def _render_gauge(score: float) -> None:
     pct = max(0.0, min(1.0, float(score))) * 100
@@ -365,10 +451,60 @@ def _render_gauge(score: float) -> None:
 
 def _render_status_badge(status_label: str) -> None:
     style = _STATUS_STYLES.get(status_label, _STATUS_STYLES["WARNING"])
-    badge_cls = style["cls"]
-    badge_label = style["label"]
     st.markdown(
-        f"<div class='hh-status-badge {badge_cls}'>{badge_label}</div>",
+        f"<div class='hh-status-badge {style['cls']}'>{style['label']}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _build_count_chip(verdict_key: str, count: int) -> str:
+    vstyle = _VERDICT_STYLES[verdict_key]
+    return (
+        f"<div class='hh-count-chip {vstyle['cls']}'>"
+        f"<span class='hh-count-icon'>{vstyle['icon']}</span>"
+        f"<span class='hh-count-num'>{count}</span>"
+        f"<span class='hh-count-lbl'>{vstyle['label']}</span>"
+        f"</div>"
+    )
+
+
+def _render_taxonomy_panel(report: Any) -> None:
+    summary = report.hallucination_summary()
+    rows_html = ""
+    for ht in HallucinationType:
+        explanations = summary.get(ht, [])
+        count = len(explanations)
+        color = _TAXONOMY_COLORS.get(ht.value, "#9AA0AC")
+        is_detail = ht in DETAIL_TYPES
+        row_cls = "hh-tax-row-active" if count > 0 else "hh-tax-row-dim"
+        count_cls = "hh-tax-count-active" if count > 0 else "hh-tax-count-dim"
+
+        chip = (
+            f"<span class='hh-tax-chip' style='"
+            f"background: {color}22; color: {color}; "
+            f"border: 1px solid {color}55;'>"
+            f"{ht.value}</span>"
+        )
+        row = (
+            f"<div class='hh-tax-row {row_cls}'>"
+            f"{chip}"
+            f"<span class='hh-tax-count {count_cls}'>{count}</span>"
+        )
+
+        if is_detail and count > 0:
+            details = "".join(
+                f"<div class='hh-tax-explanation'>"
+                f"{_html_escape(e)}</div>"
+                for e in explanations if e
+            )
+            if details:
+                row += f"<div class='hh-tax-details'>{details}</div>"
+
+        row += "</div>"
+        rows_html += row
+
+    st.markdown(
+        f"<div class='hh-tax-grid'>{rows_html}</div>",
         unsafe_allow_html=True,
     )
 
@@ -388,26 +524,40 @@ def _render_claim_card(claim: Any, idx: int) -> None:
         or ""
     )
 
+    # Hallucination type chips
+    tags = _safe_get(claim, "hallucination_tags", []) or []
+    tag_chips = ""
+    for tag in tags:
+        t_type = _safe_get(tag, "type", None)
+        if t_type is None:
+            continue
+        t_val = t_type.value if hasattr(t_type, "value") else str(t_type).upper()
+        color = _TAXONOMY_COLORS.get(t_val, "#9AA0AC")
+        tag_chips += (
+            f"<span class='hh-tag-chip' style='"
+            f"background: {color}22; color: {color}; "
+            f"border: 1px solid {color}55;'>"
+            f"{t_val}</span> "
+        )
+
     style = _VERDICT_STYLES.get(verdict, _VERDICT_STYLES["NEUTRAL"])
     pct = max(0.0, min(1.0, score)) * 100
-    s_cls = style["cls"]
-    s_icon = style["icon"]
-    s_label = style["label"]
 
-    header = f"Claim {idx + 1}  ·  {s_label}"
+    header = f"Claim {idx + 1}  \xb7  {style['label']}"
     with st.expander(header, expanded=(verdict in ("CONTRADICT", "NEUTRAL"))):
         st.markdown(
             f"<div class='hh-claim-card'>"
             f"<div class='hh-claim-text'>{_html_escape(text)}</div>"
             f"<div class='hh-claim-meta'>"
-            f"<span class='hh-verdict-badge {s_cls}'>"
-            f"<span class='hh-verdict-icon'>{s_icon}</span>"
-            f"<span>{s_label}</span>"
+            f"<span class='hh-verdict-badge {style['cls']}'>"
+            f"<span class='hh-verdict-icon'>{style['icon']}</span>"
+            f"<span>{style['label']}</span>"
             f"</span>"
+            f"{tag_chips}"
             f"<span class='hh-claim-conf-label'>NLI score</span>"
             f"</div>"
             f"<div class='hh-conf-bar'>"
-            f"<div class='hh-conf-fill {s_cls}' style='width: {pct:.1f}%;'></div>"
+            f"<div class='hh-conf-fill {style['cls']}' style='width: {pct:.1f}%;'></div>"
             f"</div>"
             f"<div class='hh-conf-value'>{score:.2f}</div>"
             f"</div>",
@@ -417,7 +567,8 @@ def _render_claim_card(claim: Any, idx: int) -> None:
             st.markdown(
                 f"<div class='hh-evidence'>"
                 f"<div class='hh-evidence-label'>Matching evidence</div>"
-                f"<blockquote class='hh-evidence-quote'>{_html_escape(evidence)}</blockquote>"
+                f"<blockquote class='hh-evidence-quote'>"
+                f"{_html_escape(evidence)}</blockquote>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -471,38 +622,11 @@ def _render_error(detail: Any) -> None:
     )
 
 
-def _build_count_chip(verdict_key: str, count: int) -> str:
-    vstyle = _VERDICT_STYLES[verdict_key]
-    v_cls = vstyle["cls"]
-    v_icon = vstyle["icon"]
-    v_label = vstyle["label"]
-    return (
-        f"<div class='hh-count-chip {v_cls}'>"
-        f"<span class='hh-count-icon'>{v_icon}</span>"
-        f"<span class='hh-count-num'>{count}</span>"
-        f"<span class='hh-count-lbl'>{v_label}</span>"
-        f"</div>"
-    )
+# ------------------------------------------------------------------ #
+# Single report renderer (used for both single and each A/B column)   #
+# ------------------------------------------------------------------ #
 
-
-def _render_results() -> None:
-    error = st.session_state.get("last_error")
-    if error is not None:
-        _render_error(error)
-        return
-
-    report = st.session_state.get("last_report")
-    if report is None:
-        return
-
-    st.markdown(
-        "<div class='hh-section-head'>"
-        "<span class='hh-section-num'>D</span>"
-        "<span class='hh-section-title'>Audit Report</span>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
+def _render_single_report(report: Any) -> None:
     score = float(_safe_get(report, "faithfulness_score", 0.0) or 0.0)
     status_label = _get_status_label(_safe_get(report, "status", "WARNING"))
     claims = _safe_get(report, "claims", []) or []
@@ -522,14 +646,20 @@ def _render_results() -> None:
             "CONTRADICT": verdicts.count("CONTRADICT"),
             "NEUTRAL": verdicts.count("NEUTRAL"),
         }
-        chip_parts = [_build_count_chip(k, v) for k, v in counts.items()]
-        chips_html = "".join(chip_parts)
+        chips_html = "".join(
+            _build_count_chip(k, v) for k, v in counts.items()
+        )
         st.markdown(
             f"<div class='hh-count-grid'>{chips_html}</div>",
             unsafe_allow_html=True,
         )
 
-    st.markdown("<h3 class='hh-h3'>Claims Breakdown</h3>", unsafe_allow_html=True)
+    _render_taxonomy_panel(report)
+
+    st.markdown(
+        "<h3 class='hh-h3'>Claims Breakdown</h3>",
+        unsafe_allow_html=True,
+    )
     if not claims:
         st.info("No claims were extracted from the answer.")
         return
@@ -538,13 +668,91 @@ def _render_results() -> None:
         _render_claim_card(claim, idx)
 
 
+# ------------------------------------------------------------------ #
+# SECTION D — Results                                                 #
+# ------------------------------------------------------------------ #
+
+def _render_results() -> None:
+    error = st.session_state.get("last_error")
+    if error is not None:
+        _render_error(error)
+        return
+
+    is_ab = st.session_state.get("hh_mode") == "A/B Comparison"
+
+    if is_ab:
+        pair = st.session_state.get("last_report_pair")
+        if pair is None:
+            return
+        report_a, report_b = pair
+
+        st.markdown(
+            "<div class='hh-section-head'>"
+            "<span class='hh-section-num'>D</span>"
+            "<span class='hh-section-title'>A/B Comparison Report</span>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        score_a = float(_safe_get(report_a, "faithfulness_score", 0.0) or 0.0)
+        score_b = float(_safe_get(report_b, "faithfulness_score", 0.0) or 0.0)
+
+        if score_a > score_b:
+            winner_cls = "hh-ab-winner-a"
+            winner_text = f"Answer A wins ({score_a:.2f} vs {score_b:.2f})"
+        elif score_b > score_a:
+            winner_cls = "hh-ab-winner-b"
+            winner_text = f"Answer B wins ({score_b:.2f} vs {score_a:.2f})"
+        else:
+            winner_cls = "hh-ab-winner-tie"
+            winner_text = f"Tie ({score_a:.2f} each)"
+
+        st.markdown(
+            f"<div class='hh-ab-verdict {winner_cls}'>{winner_text}</div>",
+            unsafe_allow_html=True,
+        )
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.markdown(
+                "<div class='hh-ab-report-label'>Report A</div>",
+                unsafe_allow_html=True,
+            )
+            _render_single_report(report_a)
+        with col_b:
+            st.markdown(
+                "<div class='hh-ab-report-label'>Report B</div>",
+                unsafe_allow_html=True,
+            )
+            _render_single_report(report_b)
+        return
+
+    # Single mode
+    report = st.session_state.get("last_report")
+    if report is None:
+        return
+
+    st.markdown(
+        "<div class='hh-section-head'>"
+        "<span class='hh-section-num'>D</span>"
+        "<span class='hh-section-title'>Audit Report</span>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    _render_single_report(report)
+
+
+# ------------------------------------------------------------------ #
+# PUBLIC ENTRY POINT                                                  #
+# ------------------------------------------------------------------ #
+
 def audit_ui() -> None:
-    """Render the full Audit page."""
     st.markdown(
         "<div class='hh-page-head'>"
         "<h1 class='hh-page-title'>Audit an LLM Answer</h1>"
         "<p class='hh-page-sub'>"
-        "Three inputs · one report. Extract atomic claims, verify each "
+        "Three inputs \xb7 one report. Extract atomic claims, verify each "
         "against the source via NLI, and surface every drift."
         "</p>"
         "</div>",
