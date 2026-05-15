@@ -1,10 +1,8 @@
-@'
 """Hallucination taxonomy classifier.
 
 Given a claim, its verdict against a source, and the source itself, classify
 the *type* of hallucination present. A single claim can carry multiple types
-simultaneously: a claim like "the war was in 1972 by the British" against a
-source saying "1971 by the Pakistani army" is Temporal AND Entity AND Intrinsic.
+simultaneously.
 
 Seven categories (claim-level, per Ji et al. 2023 NLG hallucination survey):
 
@@ -119,7 +117,7 @@ class TaxonomyClassifier:
             verdict=verdict.value,
         )
 
-        raw = self._llm.generate(prompt)
+        raw = self._llm.call(prompt)
         return self._parse_response(raw, claim=claim, verdict=verdict.value)
 
     def classify_all(
@@ -140,11 +138,7 @@ class TaxonomyClassifier:
         claim: str,
         verdict: str,
     ) -> list[HallucinationTag]:
-        """Parse the JSON response into HallucinationTag objects.
-
-        Robust to common LLM output quirks: markdown code fences, leading
-        whitespace, trailing commentary.
-        """
+        """Parse the JSON response into HallucinationTag objects."""
         cleaned = TaxonomyClassifier._strip_fences(raw).strip()
         if not cleaned:
             return []
@@ -181,12 +175,11 @@ class TaxonomyClassifier:
             try:
                 hh_type = HallucinationType(type_str)
             except ValueError:
-                continue  # Unknown type from the LLM, drop silently.
+                continue
             if hh_type in seen:
-                continue  # De-dupe if LLM repeats a type.
+                continue
             seen.add(hh_type)
             explanation = str(item.get("explanation", "")).strip()
-            # Cap explanation length to keep UI tidy.
             if len(explanation) > 200:
                 explanation = explanation[:200].rstrip() + "..."
             tags.append(HallucinationTag(type=hh_type, explanation=explanation))
@@ -196,9 +189,7 @@ class TaxonomyClassifier:
     @staticmethod
     def _strip_fences(text: str) -> str:
         """Remove ```json ... ``` fences if the LLM wrapped its output."""
-        # Match opening fence, optional language tag, content, closing fence.
         m = re.search(r"```(?:json)?\s*(.*?)```", text, flags=re.DOTALL)
         if m:
             return m.group(1)
         return text
-'@ | Set-Content -Path .\src\hallucination_hunter\taxonomy.py -Encoding UTF8

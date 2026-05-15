@@ -1,8 +1,9 @@
 """Main evaluation pipeline.
 
 ``HallucinationHunter`` is the single entry point for all audits. It wires
-together ``ClaimExtractor``, ``NLIVerifier``, and ``MetricsEngine`` and
-exposes a clean API for single audits, batch audits, and file-based use.
+together ``ClaimExtractor``, ``NLIVerifier``, ``TaxonomyClassifier``, and
+``MetricsEngine`` and exposes a clean API for single audits, batch audits,
+and file-based use.
 
 Every stage is wrapped in defensive error handling: any exception that
 escapes a stage is converted into a typed ``HallucinationHunterError``
@@ -35,7 +36,7 @@ from hallucination_hunter.errors import (
 )
 from hallucination_hunter.extraction import ClaimExtractor
 from hallucination_hunter.metrics import MetricsEngine
-from hallucination_hunter.models import AuditReport
+from hallucination_hunter.models import AuditReport, ClaimResult, Verdict
 from hallucination_hunter.providers import create_provider
 from hallucination_hunter.providers.base import (
     AuthenticationError as ProviderAuthenticationError,
@@ -50,6 +51,7 @@ from hallucination_hunter.providers.base import (
     ResponseParseError as ProviderParseError,
 )
 from hallucination_hunter.providers.gemini import DEFAULT_GEMINI_MODEL
+from hallucination_hunter.taxonomy import TaxonomyClassifier
 from hallucination_hunter.verification import NLIVerifier
 
 load_dotenv()
@@ -58,10 +60,11 @@ load_dotenv()
 class HallucinationHunter:
     """Orchestrates the full RAG Triad evaluation pipeline.
 
-    Wires together three stateless components:
-        1. ``ClaimExtractor``  — breaks the answer into atomic claims.
-        2. ``NLIVerifier``     — checks each claim against the source.
-        3. ``MetricsEngine``   — computes faithfulness and builds the report.
+    Wires together four stateless components:
+        1. ``ClaimExtractor``      — breaks the answer into atomic claims.
+        2. ``NLIVerifier``         — checks each claim against the source.
+        3. ``TaxonomyClassifier``  — classifies hallucination types per claim.
+        4. ``MetricsEngine``       — computes faithfulness and builds the report.
 
     Args:
         api_key: Provider API key. Falls back to the ``GEMINI_API_KEY``
@@ -108,6 +111,7 @@ class HallucinationHunter:
 
         self._extractor = ClaimExtractor(self._llm)
         self._verifier = NLIVerifier(self._llm)
+        self._taxonomy = TaxonomyClassifier(self._llm)
         self._scorer = MetricsEngine()
         self.provider_name = provider
         self.model_name = model
@@ -162,7 +166,7 @@ class HallucinationHunter:
                 raise InputError(err)
 
         # ------- Stage 1: claim extraction -------
-        _progress("Extracting claims…")
+        _progress("Extracting claims\u2026")
         try:
             claims = self._extractor.extract(answer)
         except HallucinationHunterError:
@@ -179,7 +183,7 @@ class HallucinationHunter:
             )
 
         # ------- Stage 2: NLI verification -------
-        _progress(f"Verifying {len(claims)} claim(s)…")
+        _progress(f"Verifying {len(claims)} claim(s)\u2026")
         try:
             results = self._verifier.verify_all(claims, source)
         except HallucinationHunterError:
@@ -187,10 +191,39 @@ class HallucinationHunter:
         except Exception as e:
             raise self._wrap_provider_exception(e, stage="verification") from e
 
+        # ------- Stage 2.5: taxonomy classification -------
+        # Only classify non-ENTAIL claims (hallucinated or ungrounded).
+        # Rebuild ClaimResult objects with populated hallucination_tags.
+        # Taxonomy errors are non-fatal: if classification fails for a
+        # claim, that claim keeps its empty tags and the audit continues.
+        _progress("Classifying hallucination types\u2026")
+        enriched_results: list[ClaimResult] = []
+        for cr in results:
+            if cr.verdict == Verdict.ENTAIL:
+                enriched_results.append(cr)
+                continue
+            try:
+                tags = self._taxonomy.classify(cr.claim, cr.verdict, source)
+            except Exception:
+                # Non-fatal: keep the claim without taxonomy tags.
+                tags = []
+            # ClaimResult is frozen, so rebuild with tags attached.
+            enriched_results.append(
+                ClaimResult(
+                    claim=cr.claim,
+                    verdict=cr.verdict,
+                    score=cr.score,
+                    source_evidence=cr.source_evidence,
+                    hallucination_tags=tags,
+                )
+            )
+
         # ------- Stage 3: metrics (pure compute, no LLM) -------
-        _progress("Calculating metrics…")
+        _progress("Calculating metrics\u2026")
         try:
-            return self._scorer.build_report(source, question, answer, results)
+            return self._scorer.build_report(
+                source, question, answer, enriched_results
+            )
         except Exception as e:
             raise InternalError(
                 make_error(
