@@ -52,3 +52,9 @@ v3_ideas.md
 
 _dump_*.txt
 audit_current.txt
+
+# Local planning and dump files
+v3_ideas*
+audit_current.txt
+_dump_*.txt
+mnt/
