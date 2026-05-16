@@ -1,12 +1,8 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
-
 """
-Hallucination Hunter — Streamlit entry point.
+Hallucination Hunter - Streamlit entry point.
 
 A local RAG evaluation tool implementing the RAG Triad framework
-(Context Relevance · Faithfulness · Answer Relevance) for detecting
+(Context Relevance, Faithfulness, Answer Relevance) for detecting
 LLM hallucinations against a grounded source context.
 
 Run with:
@@ -14,28 +10,31 @@ Run with:
 """
 from __future__ import annotations
 
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
+
 import streamlit as st
 
 from ui.audit import audit_ui
 from ui.styles import load_custom_css
 
 
-PAGE_AUDIT = "🎯 Audit"
-PAGE_ABOUT = "ℹ️ About"
+PAGE_AUDIT = "\U0001f3af Audit"
+PAGE_ABOUT = "\u2139\ufe0f About"
 
 
 def _configure_page() -> None:
-    """Configure global Streamlit page settings. Must run before any other st calls."""
     st.set_page_config(
         page_title="Hallucination Hunter",
-        page_icon="🎯",
+        page_icon="\U0001f3af",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
 
 def _render_sidebar() -> str:
-    """Render the sidebar navigation and return the selected page label."""
     with st.sidebar:
         st.markdown(
             "<div class='hh-sidebar-brand'>"
@@ -59,7 +58,7 @@ def _render_sidebar() -> str:
         st.markdown("<div class='hh-sidebar-divider'></div>", unsafe_allow_html=True)
         st.markdown(
             "<div class='hh-sidebar-foot'>"
-            "BYOK · session-scoped<br>"
+            "BYOK \u00b7 session-scoped<br>"
             "No keys written to disk"
             "</div>",
             unsafe_allow_html=True,
@@ -68,14 +67,13 @@ def _render_sidebar() -> str:
 
 
 def _render_about() -> None:
-    """Render the About / project overview page."""
     st.markdown(
         "<div class='hh-hero'>"
-        "<div class='hh-hero-eyebrow'>EvalOps · Local RAG Auditing</div>"
+        "<div class='hh-hero-eyebrow'>EvalOps \u00b7 Local RAG Auditing</div>"
         "<h1 class='hh-hero-title'>Hallucination Hunter</h1>"
         "<p class='hh-hero-lede'>"
         "A grounded-evaluation tool that scores LLM answers against a source "
-        "context using the RAG Triad — so you can see <em>where</em> a model "
+        "context using the RAG Triad \u2014 so you can see <em>where</em> a model "
         "drifted, not just <em>that</em> it did."
         "</p>"
         "</div>",
@@ -100,24 +98,24 @@ def _render_about() -> None:
     st.markdown(
         "<p class='hh-prose'>"
         "Three complementary metrics that, together, locate the failure inside a "
-        "RAG pipeline. Each one isolates a different stage — retrieval, generation, "
-        "or alignment — so when something breaks, you know which lever to pull."
+        "RAG pipeline. Each one isolates a different stage \u2014 retrieval, generation, "
+        "or alignment \u2014 so when something breaks, you know which lever to pull."
         "</p>",
         unsafe_allow_html=True,
     )
 
     triad = [
         {
-            "icon": "①",
+            "icon": "\u2460",
             "title": "Context Relevance",
             "stage": "Retrieval",
             "body": (
                 "Did the retriever pull documents that actually address the question? "
-                "Low scores point at chunking, embedding, or index quality — not the LLM."
+                "Low scores point at chunking, embedding, or index quality \u2014 not the LLM."
             ),
         },
         {
-            "icon": "②",
+            "icon": "\u2461",
             "title": "Faithfulness",
             "stage": "Generation",
             "body": (
@@ -127,7 +125,7 @@ def _render_about() -> None:
             ),
         },
         {
-            "icon": "③",
+            "icon": "\u2462",
             "title": "Answer Relevance",
             "stage": "Alignment",
             "body": (
@@ -154,13 +152,13 @@ def _render_about() -> None:
         "<div class='hh-thresh-grid'>"
         "<div class='hh-thresh hh-thresh-pass'>"
         "<div class='hh-thresh-label'>PASS</div>"
-        "<div class='hh-thresh-range'>≥ 0.85</div>"
+        "<div class='hh-thresh-range'>\u2265 0.85</div>"
         "<div class='hh-thresh-note'>Production-ready grounding. "
         "Almost every claim traces back to the source.</div>"
         "</div>"
         "<div class='hh-thresh hh-thresh-warn'>"
         "<div class='hh-thresh-label'>WARNING</div>"
-        "<div class='hh-thresh-range'>0.50 – 0.84</div>"
+        "<div class='hh-thresh-range'>0.50 \u2013 0.84</div>"
         "<div class='hh-thresh-note'>Partial drift detected. "
         "Review unsupported claims before shipping.</div>"
         "</div>"
@@ -188,7 +186,7 @@ def _render_about() -> None:
         "<div class='hh-step-num'>02</div>"
         "<div class='hh-step-body'>"
         "<strong>Provide the question and the answer.</strong> The answer is whatever "
-        "your model generated — paste it verbatim."
+        "your model generated \u2014 paste it verbatim."
         "</div>"
         "</div>"
         "<div class='hh-example-step'>"
@@ -203,8 +201,8 @@ def _render_about() -> None:
         "<div class='hh-step-num'>04</div>"
         "<div class='hh-step-body'>"
         "<strong>Read the breakdown.</strong> Each claim is tagged "
-        "<code>SUPPORTED</code>, <code>CONTRADICTED</code>, <code>NOT_FOUND</code>, "
-        "or <code>NEUTRAL</code> — with the matching evidence snippet inline."
+        "<code>SUPPORTED</code>, <code>CONTRADICTED</code>, <code>NOT FOUND</code>, "
+        "or <code>NEUTRAL</code> \u2014 with the matching evidence snippet inline."
         "</div>"
         "</div>"
         "</div>",
@@ -224,7 +222,6 @@ def _render_about() -> None:
 
 
 def main() -> None:
-    """Application entry point."""
     _configure_page()
     load_custom_css()
     page = _render_sidebar()
