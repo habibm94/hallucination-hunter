@@ -637,7 +637,7 @@ _CSS = """
 /* ---------- Verdict count chips ---------- */
 .hh-count-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 0.5rem;
     margin-top: 0.5rem;
 }
