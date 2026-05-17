@@ -640,6 +640,7 @@ _CSS = """
     grid-template-columns: 1fr;
     gap: 0.5rem;
     margin-top: 0.5rem;
+    min-width: 0;
 }
 .hh-count-chip {
     background: var(--hh-card);
@@ -649,6 +650,8 @@ _CSS = """
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    overflow: hidden;
+    min-width: 0;
 }
 .hh-count-icon {
     font-size: 1rem;
@@ -668,14 +671,34 @@ _CSS = """
     margin-left: auto;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ---------- Claim cards ---------- */
 .hh-claim-card {
     background: var(--hh-bg-elev);
+    border: 1px solid var(--hh-border);
     border-radius: var(--hh-radius);
     padding: 0.85rem 1rem 1rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.6rem;
+}
+.hh-claim-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+    flex-wrap: wrap;
+}
+.hh-claim-index {
+    font-family: var(--hh-font-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--hh-text-dim);
+    text-transform: uppercase;
 }
 .hh-claim-text {
     color: var(--hh-text);
@@ -728,10 +751,13 @@ _CSS = """
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 .hh-verdict-icon {
     font-size: 0.9rem;
     line-height: 1;
+    flex-shrink: 0;
 }
 .hh-verdict-supported {
     background: rgba(0, 200, 83, 0.12);
@@ -812,6 +838,29 @@ _CSS = """
     color: var(--hh-text);
     font-weight: 500;
     padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+/* Expander chevron: keep Material icon font applied so the glyph
+   renders instead of leaking its class name (_arrow_down_right) as text.
+   Lock its size and stop it from collapsing into the label. */
+[data-testid="stExpander"] summary svg,
+[data-testid="stExpander"] summary [data-testid="stIconMaterial"] {
+    flex-shrink: 0;
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    line-height: 1;
+}
+[data-testid="stExpander"] summary [data-testid="stIconMaterial"] {
+    font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+}
+/* Expander label text: own line-box, never overlaps the chevron. */
+[data-testid="stExpander"] summary p,
+[data-testid="stExpander"] summary span {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Progress bar */

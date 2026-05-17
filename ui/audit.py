@@ -1,4 +1,4 @@
-﻿"""Audit page UI for Hallucination Hunter."""
+"""Audit page UI for Hallucination Hunter."""
 
 from __future__ import annotations
 
@@ -105,7 +105,7 @@ def _render_char_counter(text: str, limit: int) -> None:
 
 
 # ------------------------------------------------------------------ #
-# SECTION A â€” Provider Setup                                          #
+# SECTION A — Provider Setup                                          #
 # ------------------------------------------------------------------ #
 
 def _render_provider_setup() -> tuple[str | None, str | None, str | None]:
@@ -204,7 +204,7 @@ def _render_provider_setup() -> tuple[str | None, str | None, str | None]:
 
 
 # ------------------------------------------------------------------ #
-# SECTION B â€” Audit Inputs                                            #
+# SECTION B — Audit Inputs                                            #
 # ------------------------------------------------------------------ #
 
 def _render_input_fields() -> tuple[str, str, str]:
@@ -300,7 +300,7 @@ def _render_input_fields() -> tuple[str, str, str]:
 
 
 # ------------------------------------------------------------------ #
-# SECTION C â€” Run Audit                                               #
+# SECTION C — Run Audit                                               #
 # ------------------------------------------------------------------ #
 
 def _render_execution(
@@ -510,6 +510,14 @@ def _render_taxonomy_panel(report: Any) -> None:
 
 
 def _render_claim_card(claim: Any, idx: int) -> None:
+    """Render a single claim as a self-contained HTML card.
+
+    Deliberately does NOT use st.expander. The expander widget injects a
+    Material-icon chevron into its <summary>; on some Streamlit builds the
+    icon font fails to load and the raw class name ('_arrow_down_right')
+    renders as visible text, overlapping the label. A plain card removes
+    that failure surface entirely - every claim is always visible.
+    """
     text = _safe_get(claim, "claim", "") or _safe_get(claim, "text", "")
     verdict_raw = _safe_get(claim, "verdict", "NEUTRAL")
     verdict = (
@@ -543,42 +551,40 @@ def _render_claim_card(claim: Any, idx: int) -> None:
     style = _VERDICT_STYLES.get(verdict, _VERDICT_STYLES["NEUTRAL"])
     pct = max(0.0, min(1.0, score)) * 100
 
-    header = f"Claim {idx + 1}  \xb7  {style['label']}"
-    with st.expander(label=header, expanded=(verdict in ("CONTRADICT", "NEUTRAL")), icon=None):
-        st.markdown(
-            f"<div class='hh-claim-card'>"
-            f"<div class='hh-claim-text'>{_html_escape(text)}</div>"
-            f"<div class='hh-claim-meta'>"
-            f"<span class='hh-verdict-badge {style['cls']}'>"
-            f"<span class='hh-verdict-icon'>{style['icon']}</span>"
-            f"<span>{style['label']}</span>"
-            f"</span>"
-            f"{tag_chips}"
-            f"<span class='hh-claim-conf-label'>NLI score</span>"
+    if evidence:
+        evidence_html = (
+            f"<div class='hh-evidence'>"
+            f"<div class='hh-evidence-label'>Matching evidence</div>"
+            f"<blockquote class='hh-evidence-quote'>"
+            f"{_html_escape(evidence)}</blockquote>"
             f"</div>"
-            f"<div class='hh-conf-bar'>"
-            f"<div class='hh-conf-fill {style['cls']}' style='width: {pct:.1f}%;'></div>"
-            f"</div>"
-            f"<div class='hh-conf-value'>{score:.2f}</div>"
-            f"</div>",
-            unsafe_allow_html=True,
         )
-        if evidence:
-            st.markdown(
-                f"<div class='hh-evidence'>"
-                f"<div class='hh-evidence-label'>Matching evidence</div>"
-                f"<blockquote class='hh-evidence-quote'>"
-                f"{_html_escape(evidence)}</blockquote>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                "<div class='hh-evidence hh-evidence-empty'>"
-                "<div class='hh-evidence-label'>No matching evidence in source.</div>"
-                "</div>",
-                unsafe_allow_html=True,
-            )
+    else:
+        evidence_html = (
+            "<div class='hh-evidence hh-evidence-empty'>"
+            "<div class='hh-evidence-label'>No matching evidence in source.</div>"
+            "</div>"
+        )
+
+    st.markdown(
+        f"<div class='hh-claim-card'>"
+        f"<div class='hh-claim-head'>"
+        f"<span class='hh-claim-index'>Claim {idx + 1}</span>"
+        f"<span class='hh-verdict-badge {style['cls']}'>{style['label']}</span>"
+        f"</div>"
+        f"<div class='hh-claim-text'>{_html_escape(text)}</div>"
+        f"<div class='hh-claim-meta'>"
+        f"{tag_chips}"
+        f"<span class='hh-claim-conf-label'>NLI score</span>"
+        f"</div>"
+        f"<div class='hh-conf-bar'>"
+        f"<div class='hh-conf-fill {style['cls']}' style='width: {pct:.1f}%;'></div>"
+        f"</div>"
+        f"<div class='hh-conf-value'>{score:.2f}</div>"
+        f"{evidence_html}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def _render_error(detail: Any) -> None:
@@ -669,7 +675,7 @@ def _render_single_report(report: Any) -> None:
 
 
 # ------------------------------------------------------------------ #
-# SECTION D â€” Results                                                 #
+# SECTION D — Results                                                 #
 # ------------------------------------------------------------------ #
 
 def _render_results() -> None:
