@@ -1,4 +1,4 @@
-"""Audit page UI for Hallucination Hunter."""
+﻿"""Audit page UI for Hallucination Hunter."""
 
 from __future__ import annotations
 
@@ -105,7 +105,7 @@ def _render_char_counter(text: str, limit: int) -> None:
 
 
 # ------------------------------------------------------------------ #
-# SECTION A — Provider Setup                                          #
+# SECTION A â€” Provider Setup                                          #
 # ------------------------------------------------------------------ #
 
 def _render_provider_setup() -> tuple[str | None, str | None, str | None]:
@@ -204,7 +204,7 @@ def _render_provider_setup() -> tuple[str | None, str | None, str | None]:
 
 
 # ------------------------------------------------------------------ #
-# SECTION B — Audit Inputs                                            #
+# SECTION B â€” Audit Inputs                                            #
 # ------------------------------------------------------------------ #
 
 def _render_input_fields() -> tuple[str, str, str]:
@@ -300,7 +300,7 @@ def _render_input_fields() -> tuple[str, str, str]:
 
 
 # ------------------------------------------------------------------ #
-# SECTION C — Run Audit                                               #
+# SECTION C â€” Run Audit                                               #
 # ------------------------------------------------------------------ #
 
 def _render_execution(
@@ -544,7 +544,7 @@ def _render_claim_card(claim: Any, idx: int) -> None:
     pct = max(0.0, min(1.0, score)) * 100
 
     header = f"Claim {idx + 1}  \xb7  {style['label']}"
-    with st.expander(header, expanded=(verdict in ("CONTRADICT", "NEUTRAL"))):
+    with st.expander(label=header, expanded=(verdict in ("CONTRADICT", "NEUTRAL")), icon=None):
         st.markdown(
             f"<div class='hh-claim-card'>"
             f"<div class='hh-claim-text'>{_html_escape(text)}</div>"
@@ -669,7 +669,7 @@ def _render_single_report(report: Any) -> None:
 
 
 # ------------------------------------------------------------------ #
-# SECTION D — Results                                                 #
+# SECTION D â€” Results                                                 #
 # ------------------------------------------------------------------ #
 
 def _render_results() -> None:
