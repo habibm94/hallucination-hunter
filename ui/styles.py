@@ -1,4 +1,4 @@
-"""
+﻿"""
 Custom CSS theming for Hallucination Hunter.
 
 Design tokens (per project spec):
@@ -8,7 +8,7 @@ Design tokens (per project spec):
     Typography:    Inter
     Border radius: 8px       Transitions:   0.2s ease
 
-Exposes a single function â€” `load_custom_css()` â€” that injects the stylesheet
+Exposes a single function Ã¢â‚¬â€ `load_custom_css()` Ã¢â‚¬â€ that injects the stylesheet
 via `st.markdown(..., unsafe_allow_html=True)`. Call once per page render,
 after `st.set_page_config()`.
 """
@@ -819,7 +819,7 @@ _CSS = """
 }
 
 /* ---------- Streamlit chrome cleanup ---------- */
-[data-testid="stToolbar"], footer { display: none !important; }
+footer { display: none !important; }
 #MainMenu { visibility: hidden; }
 [data-testid="stDecoration"] { display: none; }
 
