@@ -129,6 +129,30 @@ _CSS = """
     padding: 0 0.5rem;
 }
 
+/* Sidebar collapse/expand — pure CSS arrow, no Material font needed */
+[data-testid="stSidebar"][aria-expanded="true"] ~ [data-testid="collapsedControl"],
+[data-testid="stSidebar"][aria-expanded="false"] ~ [data-testid="collapsedControl"] {
+    display: flex !important;
+}
+[data-testid="stSidebarCollapseButton"] button::before {
+    content: "◀";
+    font-family: var(--hh-font);
+    font-size: 0.9rem;
+}
+[data-testid="stSidebarCollapseButton"] button svg,
+[data-testid="stSidebarCollapseButton"] button span[data-testid="stIconMaterial"] {
+    display: none !important;
+}
+[data-testid="collapsedControl"] button::before {
+    content: "▶";
+    font-family: var(--hh-font);
+    font-size: 0.9rem;
+}
+[data-testid="collapsedControl"] button svg,
+[data-testid="collapsedControl"] button span[data-testid="stIconMaterial"] {
+    display: none !important;
+}
+
 /* Sidebar radio */
 [data-testid="stSidebar"] [role="radiogroup"] label {
     background: transparent;
@@ -820,6 +844,8 @@ _CSS = """
 
 /* ---------- Streamlit chrome cleanup ---------- */
 footer { display: none !important; }
+[data-testid="stSidebarCollapseButton"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
 #MainMenu { visibility: hidden; }
 [data-testid="stDecoration"] { display: none; }
 

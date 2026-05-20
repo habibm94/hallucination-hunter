@@ -1,4 +1,4 @@
-"""
+﻿"""
 Hallucination Hunter - Streamlit entry point.
 
 A local RAG evaluation tool implementing the RAG Triad framework
@@ -18,6 +18,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src
 import streamlit as st
 
 from ui.audit import audit_ui
+import sys
+from hallucination_hunter.providers import SUPPORTED_PROVIDERS
 from ui.styles import load_custom_css
 
 
@@ -81,9 +83,9 @@ def _render_about() -> None:
     )
 
     badges = [
-        ("Python", "3.11+"),
+        ("Python", f"{sys.version_info.major}.{sys.version_info.minor}+"),
         ("Streamlit", "Native"),
-        ("Providers", "4"),
+        ("Providers", str(len(SUPPORTED_PROVIDERS))),
         ("BYOK", "Session-only"),
         ("License", "MIT"),
     ]
