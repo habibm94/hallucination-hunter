@@ -37,6 +37,8 @@ All providers are bring-your-own-key. Keys are stored in session memory only —
 ---
 
 ## Project structure
+
+```
 hallucination-hunter/
 ├── src/hallucination_hunter/
 │   ├── pipeline.py          Orchestrator — wires extraction, verification, taxonomy, metrics
@@ -61,6 +63,7 @@ hallucination-hunter/
 ├── .env.example             Environment variable template
 ├── pyproject.toml           Project metadata and tool config
 └── requirements.txt         Runtime dependencies
+```
 
 ---
 
